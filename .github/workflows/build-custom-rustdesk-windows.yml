@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  RENDEZVOUS_SERVER: "200.138.123.33"
+  RENDEZVOUS_SERVER: "monitor.joyit.com.br"
   RS_PUB_KEY: "zQ31WqTAB60to3bKIKqM7L4FohTncaXPyhXJWM6qx6s="
 
 jobs:
@@ -52,18 +52,23 @@ jobs:
           clang --version
           echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Install NASM (required by aom)
-        run: |
-          choco install -y nasm
-          $nasmPath = "C:\Program Files\NASM"
-          echo "$nasmPath" | Out-File -FilePath $env:GITHUB_PATH -Append
-          & "$nasmPath\nasm.exe" -v
-
       - name: Install vcpkg dependencies
         run: |
           git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
           & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat
           echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Pre-place compatible NASM (aom doesn't support NASM 3.x)
+        run: |
+          $toolsDir = "$env:USERPROFILE\vcpkg\downloads\tools\nasm\nasm-3.01"
+          New-Item -ItemType Directory -Force -Path $toolsDir | Out-Null
+          Invoke-WebRequest -UseBasicParsing -Uri "https://www.nasm.us/pub/nasm/releasebuilds/2.16.01/win64/nasm-2.16.01-win64.zip" -OutFile "$env:TEMP\nasm.zip"
+          Expand-Archive -Path "$env:TEMP\nasm.zip" -DestinationPath "$env:TEMP\nasm-extracted" -Force
+          Copy-Item -Path "$env:TEMP\nasm-extracted\nasm-2.16.01\*" -Destination $toolsDir -Recurse -Force
+          & "$toolsDir\nasm.exe" -v
+
+      - name: Run vcpkg manifest install
+        run: |
           & $env:USERPROFILE\vcpkg\vcpkg.exe install --x-manifest-root=. --x-install-root=$env:USERPROFILE\vcpkg\installed
 
       - name: Print vcpkg failure logs (if any)
