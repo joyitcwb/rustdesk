@@ -69,7 +69,10 @@ jobs:
 
       - name: Run vcpkg manifest install
         run: |
-          & $env:USERPROFILE\vcpkg\vcpkg.exe install --x-manifest-root=. --x-install-root=$env:USERPROFILE\vcpkg\installed
+          $env:VCPKG_DEFAULT_TRIPLET = "x64-windows-static"
+          $env:VCPKG_DEFAULT_HOST_TRIPLET = "x64-windows-static"
+          echo "VCPKG_DEFAULT_TRIPLET=x64-windows-static" | Out-File -FilePath $env:GITHUB_ENV -Append
+          & $env:USERPROFILE\vcpkg\vcpkg.exe install --triplet x64-windows-static --x-manifest-root=. --x-install-root=$env:USERPROFILE\vcpkg\installed
 
       - name: Print vcpkg failure logs (if any)
         if: failure()
