@@ -1,0 +1,95 @@
+name: Build Custom RustDesk Windows Client
+
+on:
+  workflow_dispatch:
+
+env:
+  RENDEZVOUS_SERVER: "200.138.123.33"
+  RS_PUB_KEY: "zQ31WqTAB60to3bKIKqM7L4FohTncaXPyhXJWM6qx6s="
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Patch config.rs with custom server
+        run: |
+          $configPath = "libs\hbb_common\src\config.rs"
+          (Get-Content $configPath) `
+            -replace 'pub const RENDEZVOUS_SERVERS: &\[&str\] = &\[.*\];', "pub const RENDEZVOUS_SERVERS: &[&str] = &[`"$env:RENDEZVOUS_SERVER`"];" `
+            -replace 'pub const RS_PUB_KEY: &str = ".*";', "pub const RS_PUB_KEY: &str = `"$env:RS_PUB_KEY`";" |
+            Set-Content $configPath
+          Write-Host "Patched config.rs:"
+          Select-String -Path $configPath -Pattern "RENDEZVOUS_SERVERS|RS_PUB_KEY"
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Setup Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Enable Flutter Windows desktop
+        run: |
+          flutter config --enable-windows-desktop
+          flutter --version
+
+      - name: Install LLVM/Clang (for bindgen)
+        run: |
+          choco install -y llvm --version=15.0.2
+          echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Install vcpkg dependencies
+        run: |
+          git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
+          & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat
+          echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $pkgs = @('libvpx:x64-windows-static','libyuv:x64-windows-static','opus:x64-windows-static','aom:x64-windows-static')
+          & $env:USERPROFILE\vcpkg\vcpkg.exe install $pkgs
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache vcpkg installed
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.USERPROFILE }}\vcpkg\installed
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('.github/workflows/**','vcpkg.json') }}
+
+      - name: Build RustDesk (Flutter, release)
+        run: |
+          pip install requests
+          python build.py --flutter --hwcodec --portable
+
+      - name: Locate build output
+        id: locate
+        run: |
+          $exe = Get-ChildItem -Recurse -Path . -Filter "*.exe" | Where-Object { $_.FullName -match "release" } | Select-Object -First 1
+          if ($exe) {
+            echo "EXE_PATH=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+            Write-Host "Found: $($exe.FullName)"
+          } else {
+            Write-Error "No .exe found in release output"
+          }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-windows-custom
+          path: ${{ env.EXE_PATH }}
