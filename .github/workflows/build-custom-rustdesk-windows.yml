@@ -35,10 +35,11 @@ jobs:
         with:
           targets: x86_64-pc-windows-msvc
 
-      - name: Setup Flutter (stable)
+      - name: Setup Flutter (pinned 3.24.5)
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.24.5
 
       - name: Enable Flutter Windows desktop
         run: |
