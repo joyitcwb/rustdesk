@@ -9,7 +9,7 @@ env:
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
     defaults:
       run:
         shell: pwsh
@@ -57,7 +57,7 @@ jobs:
           git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
           & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat
           echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
-          & $env:USERPROFILE\vcpkg\vcpkg.exe install --triplet x64-windows-static --x-manifest-root=. --x-install-root=$env:USERPROFILE\vcpkg\installed
+          & $env:USERPROFILE\vcpkg\vcpkg.exe install --x-manifest-root=. --x-install-root=$env:USERPROFILE\vcpkg\installed
 
       - name: Cache cargo registry
         uses: actions/cache@v4
