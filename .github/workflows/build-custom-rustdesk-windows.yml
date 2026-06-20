@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  RENDEZVOUS_SERVER: "monitor.joy.inf.br"
+  RENDEZVOUS_SERVER: "monitor.joyit.com.br"
   RS_PUB_KEY: "zQ31WqTAB60to3bKIKqM7L4FohTncaXPyhXJWM6qx6s="
 
 jobs:
@@ -127,30 +127,18 @@ jobs:
       - name: Locate build output
         id: locate
         run: |
-          # Prefer the portable packer .exe (single self-contained file) if it exists
-          $portable = Get-ChildItem -Recurse -Path . -Filter "rustdesk-portable-packer.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($portable) {
-            Write-Host "Found portable packer: $($portable.FullName)"
-            echo "ARTIFACT_PATH=$($portable.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
-            echo "ARTIFACT_IS_DIR=false" | Out-File -FilePath $env:GITHUB_ENV -Append
-          } else {
-            # Fall back to zipping the full Flutter release folder (exe + DLLs + data)
-            $releaseDir = Get-ChildItem -Recurse -Path . -Directory -Filter "Release" -ErrorAction SilentlyContinue |
-              Where-Object { Test-Path (Join-Path $_.FullName "rustdesk.exe") } | Select-Object -First 1
-            if (-not $releaseDir) {
-              $exe = Get-ChildItem -Recurse -Path . -Filter "rustdesk.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-              if ($exe) { $releaseDir = $exe.Directory }
-            }
-            if ($releaseDir) {
-              Write-Host "Found release folder: $($releaseDir.FullName)"
-              $zipPath = "$env:GITHUB_WORKSPACE\rustdesk-windows-custom.zip"
-              Compress-Archive -Path "$($releaseDir.FullName)\*" -DestinationPath $zipPath -Force
-              echo "ARTIFACT_PATH=$zipPath" | Out-File -FilePath $env:GITHUB_ENV -Append
-              echo "ARTIFACT_IS_DIR=false" | Out-File -FilePath $env:GITHUB_ENV -Append
-            } else {
-              Write-Error "Could not find rustdesk.exe or release folder"
-            }
+          $releaseDir = "flutter\build\windows\x64\runner\Release"
+          if (-not (Test-Path "$releaseDir\rustdesk.exe")) {
+            Write-Error "rustdesk.exe not found at expected path: $releaseDir"
+            Write-Host "=== Listing flutter\build\windows recursively for debugging ==="
+            Get-ChildItem -Recurse -Path "flutter\build\windows" -ErrorAction SilentlyContinue | Select-Object FullName
+            exit 1
           }
+          Write-Host "=== Contents of $releaseDir ==="
+          Get-ChildItem $releaseDir | Format-Table Name, Length
+          $zipPath = "$env:GITHUB_WORKSPACE\rustdesk-windows-custom.zip"
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath $zipPath -Force
+          echo "ARTIFACT_PATH=$zipPath" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
