@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  RENDEZVOUS_SERVER: "monitor.joyit.com.br"
+  RENDEZVOUS_SERVER: "200.138.123.33"
   RS_PUB_KEY: "zQ31WqTAB60to3bKIKqM7L4FohTncaXPyhXJWM6qx6s="
 
 jobs:
@@ -58,6 +58,16 @@ jobs:
           & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat
           echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
           & $env:USERPROFILE\vcpkg\vcpkg.exe install --x-manifest-root=. --x-install-root=$env:USERPROFILE\vcpkg\installed
+
+      - name: Print vcpkg failure logs (if any)
+        if: failure()
+        run: |
+          $logs = Get-ChildItem -Recurse -Path "$env:USERPROFILE\vcpkg\buildtrees" -Filter "*-out.log" -ErrorAction SilentlyContinue
+          foreach ($log in $logs) {
+            Write-Host "===== $($log.FullName) ====="
+            Get-Content $log.FullName -Tail 100
+            Write-Host ""
+          }
 
       - name: Cache cargo registry
         uses: actions/cache@v4
