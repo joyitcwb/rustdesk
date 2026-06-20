@@ -101,6 +101,13 @@ jobs:
           path: ${{ env.USERPROFILE }}\vcpkg\installed
           key: vcpkg-${{ runner.os }}-${{ hashFiles('.github/workflows/**','vcpkg.json') }}
 
+      - name: Install flutter_rust_bridge_codegen (matching pinned version)
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern 'flutter_rust_bridge\s*=\s*"([\d.]+)"').Matches.Groups[1].Value
+          if (-not $version) { $version = "1.80.1" }
+          Write-Host "Installing flutter_rust_bridge_codegen $version"
+          cargo install flutter_rust_bridge_codegen --version $version --locked
+
       - name: Build RustDesk (Flutter, release)
         run: |
           pip install requests
