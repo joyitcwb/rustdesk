@@ -52,6 +52,13 @@ jobs:
           clang --version
           echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      - name: Install NASM (required by aom)
+        run: |
+          choco install -y nasm
+          $nasmPath = "C:\Program Files\NASM"
+          echo "$nasmPath" | Out-File -FilePath $env:GITHUB_PATH -Append
+          & "$nasmPath\nasm.exe" -v
+
       - name: Install vcpkg dependencies
         run: |
           git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
