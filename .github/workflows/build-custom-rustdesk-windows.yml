@@ -103,8 +103,12 @@ jobs:
 
       - name: Install flutter_rust_bridge_codegen (matching pinned version)
         run: |
-          $version = (Select-String -Path Cargo.toml -Pattern 'flutter_rust_bridge\s*=\s*"([\d.]+)"').Matches.Groups[1].Value
-          if (-not $version) { $version = "1.80.1" }
+          $match = Select-String -Path Cargo.toml -Pattern 'flutter_rust_bridge\s*=\s*"([\d.]+)"' -ErrorAction SilentlyContinue
+          if ($match -and $match.Matches.Count -gt 0) {
+            $version = $match.Matches[0].Groups[1].Value
+          } else {
+            $version = "1.80.1"
+          }
           Write-Host "Installing flutter_rust_bridge_codegen $version"
           cargo install flutter_rust_bridge_codegen --version $version --locked
 
