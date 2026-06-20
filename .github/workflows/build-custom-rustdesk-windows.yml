@@ -62,10 +62,13 @@ jobs:
       - name: Print vcpkg failure logs (if any)
         if: failure()
         run: |
-          $logs = Get-ChildItem -Recurse -Path "$env:USERPROFILE\vcpkg\buildtrees" -Filter "*-out.log" -ErrorAction SilentlyContinue
+          $logs = Get-ChildItem -Recurse -Path "$env:USERPROFILE\vcpkg\buildtrees" -Include "*.log" -ErrorAction SilentlyContinue
+          if ($logs.Count -eq 0) {
+            Write-Host "No log files found under buildtrees."
+          }
           foreach ($log in $logs) {
             Write-Host "===== $($log.FullName) ====="
-            Get-Content $log.FullName -Tail 100
+            Get-Content $log.FullName -Tail 150
             Write-Host ""
           }
 
