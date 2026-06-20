@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  RENDEZVOUS_SERVER: "200.138.123.33"
+  RENDEZVOUS_SERVER: "monitor.joyit.com.br"
   RS_PUB_KEY: "zQ31WqTAB60to3bKIKqM7L4FohTncaXPyhXJWM6qx6s="
 
 jobs:
@@ -45,9 +45,11 @@ jobs:
           flutter config --enable-windows-desktop
           flutter --version
 
-      - name: Install LLVM/Clang (for bindgen)
+      - name: Verify LLVM/Clang (for bindgen)
         run: |
-          choco install -y llvm --version=15.0.2
+          # GitHub Windows runners already ship with a recent LLVM/Clang.
+          # Installing a pinned older version conflicts with it, so we just point to it.
+          clang --version
           echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Install vcpkg dependencies
