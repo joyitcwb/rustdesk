@@ -57,7 +57,7 @@ jobs:
           git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
           & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat
           echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
-          & $env:USERPROFILE\vcpkg\vcpkg.exe install libvpx:x64-windows-static libyuv:x64-windows-static opus:x64-windows-static aom:x64-windows-static
+          & $env:USERPROFILE\vcpkg\vcpkg.exe install --triplet x64-windows-static --x-manifest-root=. --x-install-root=$env:USERPROFILE\vcpkg\installed
 
       - name: Cache cargo registry
         uses: actions/cache@v4
